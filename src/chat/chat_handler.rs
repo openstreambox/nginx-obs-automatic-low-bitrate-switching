@@ -174,7 +174,7 @@ impl ChatHandler {
             .get_user_by_chat_platform(&ss.channel, &ss.platform)
             .await?;
         let lang = &user.chat_language().await.unwrap().to_string();
-        let mut msg = t!("sceneSwitch.switch", locale = lang, scene = &ss.scene);
+        let mut msg = t!("sceneSwitch.switch", locale = lang, scene = &ss.scene).into_owned();
 
         use switcher::SwitchType::*;
         match ss.switch_type {
@@ -399,7 +399,7 @@ impl ChatHandler {
             .get_user_by_chat_platform(&host.channel, &host.platform)
             .await?;
         let lang = &user.chat_language().await.unwrap().to_string();
-        let msg = t!("offlineTimeout.timeout", locale = lang);
+        let msg = t!("offlineTimeout.timeout", locale = lang).into_owned();
 
         sender.send_message(host.channel, msg).await;
 
@@ -815,7 +815,8 @@ impl DispatchCommand {
                 "startTwitchTranscoding.attempts",
                 locale = &self.lang,
                 count = &attempts.to_string()
-            );
+            )
+            .into_owned();
         }
 
         let msg = t!(
@@ -1088,12 +1089,12 @@ impl DispatchCommand {
             "start" => {
                 self.user.set_bitrate_switcher_state(true).await;
                 self.save_config().await;
-                t!("noalbs.switcherEnabled", locale = &self.lang)
+                t!("noalbs.switcherEnabled", locale = &self.lang).into_owned()
             }
             "stop" => {
                 self.user.set_bitrate_switcher_state(false).await;
                 self.save_config().await;
-                t!("noalbs.switcherDisabled", locale = &self.lang)
+                t!("noalbs.switcherDisabled", locale = &self.lang).into_owned()
             }
             "instant" => {
                 let toggle = self.user.set_instantly_switch_on_recover().await;
@@ -1103,6 +1104,7 @@ impl DispatchCommand {
                     locale = &self.lang,
                     condition = &condition_to_text(toggle, &self.lang)
                 )
+                .into_owned()
             }
             "lang" => {
                 if let Some(lang) = args.next() {
@@ -1114,11 +1116,12 @@ impl DispatchCommand {
                             locale = &lang.to_lowercase(),
                             lang = lang
                         )
+                        .into_owned()
                     } else {
-                        t!("noalbs.langErrorInvalid", locale = &self.lang, lang = lang)
+                        t!("noalbs.langErrorInvalid", locale = &self.lang, lang = lang).into_owned()
                     }
                 } else {
-                    t!("noalbs.langError", locale = &self.lang)
+                    t!("noalbs.langError", locale = &self.lang).into_owned()
                 }
             }
             "retry" => self.set_retry_attempts(args.next()).await,
@@ -1138,22 +1141,22 @@ impl DispatchCommand {
         let mut args = args.into_iter();
 
         let Some(a1) = args.next() else {
-            return t!("noalbs.ignoreNoUsername", locale = &self.lang);
+            return t!("noalbs.ignoreNoUsername", locale = &self.lang).into_owned();
         };
 
         if a1 == "rem" {
             let Some(a2) = args.next() else {
-                return t!("noalbs.ignoreNoUsername", locale = &self.lang);
+                return t!("noalbs.ignoreNoUsername", locale = &self.lang).into_owned();
             };
 
             let _ = self.user.remove_ignore_user(a2).await;
             self.save_config().await;
-            return t!("noalbs.ignoreRemoved", locale = &self.lang, username = a2);
+            return t!("noalbs.ignoreRemoved", locale = &self.lang, username = a2).into_owned();
         }
 
         let _ = self.user.add_ignore_user(a1.to_owned()).await;
         self.save_config().await;
-        t!("noalbs.ignoreAdded", locale = &self.lang, username = a1)
+        t!("noalbs.ignoreAdded", locale = &self.lang, username = a1).into_owned()
     }
 
     async fn set_retry_attempts(&self, value_string: Option<&str>) -> String {
@@ -1166,14 +1169,15 @@ impl DispatchCommand {
                     "noalbs.retryCount",
                     locale = &self.lang,
                     count = &current_attempts.to_string()
-                );
+                )
+                .into_owned();
             }
         };
 
         let value = match value.parse::<u8>() {
             Ok(v) => v,
             Err(_) => {
-                return t!("noalbs.retryError", locale = &self.lang, count = value);
+                return t!("noalbs.retryError", locale = &self.lang, count = value).into_owned();
             }
         };
 
@@ -1185,6 +1189,7 @@ impl DispatchCommand {
             locale = &self.lang,
             count = &value.to_string()
         )
+        .into_owned()
     }
 
     async fn switch_optional_scene(&self, scene_name: chat::OptionalScene) {
@@ -1224,7 +1229,7 @@ impl DispatchCommand {
         let state = &self.user.state.read().await;
         let stream_servers = &state.config.switcher.stream_servers;
 
-        let no_info = t!("sourceinfo.noInfo", locale = &self.lang);
+        let no_info = t!("sourceinfo.noInfo", locale = &self.lang).into_owned();
 
         if !name.is_empty() {
             let server = match stream_servers.iter().find(|s| s.name == name) {
@@ -1300,9 +1305,9 @@ impl DispatchCommand {
         self.send(msg).await;
     }
 
-    async fn send(&self, message: String) {
+    async fn send(&self, message: impl Into<String>) {
         self.chat_sender
-            .send_message(self.chat_message.channel.to_owned(), message)
+            .send_message(self.chat_message.channel.to_owned(), message.into())
             .await;
     }
 
@@ -1525,9 +1530,9 @@ impl DispatchCommand {
 
 fn condition_to_text(condition: bool, lang: &str) -> String {
     if condition {
-        t!("handleCommands.enabled", locale = lang)
+        t!("handleCommands.enabled", locale = lang).into_owned()
     } else {
-        t!("handleCommands.disabled", locale = lang)
+        t!("handleCommands.disabled", locale = lang).into_owned()
     }
 }
 
@@ -1564,7 +1569,7 @@ async fn bitrate_msg(user: &Noalbs, lang: &str) -> String {
     }
 
     if msg.is_empty() {
-        return t!("bitrate.error", locale = lang);
+        return t!("bitrate.error", locale = lang).into_owned();
     }
 
     msg
@@ -1597,8 +1602,7 @@ async fn check_if_transcoding(channel: &str) -> Result<bool, error::Error> {
     let json = json["data"]["streamPlaybackAccessToken"].to_owned();
     let json: StreamPlaybackAccessToken = serde_json::from_value(json)?;
 
-    use rand::Rng;
-    let rng = rand::thread_rng().gen_range(1000000..10000000);
+    let rng = rand::random_range(1000000..10000000);
     let query = M3u8Query {
         allow_source: String::from("true"),
         allow_audio_only: String::from("true"),

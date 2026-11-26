@@ -1,12 +1,6 @@
 use std::sync::Arc;
 
-use argon2::{
-    Argon2,
-    password_hash::{
-        PasswordHash, PasswordHasher, PasswordVerifier, SaltString,
-        rand_core::{OsRng, RngCore},
-    },
-};
+use argon2::{Argon2, PasswordHasher, PasswordVerifier};
 use base64::Engine;
 use tokio::sync::mpsc;
 use tracing::error;
@@ -71,23 +65,18 @@ impl WsMessage {
 
 pub fn generate_token() -> String {
     let mut random_token = [0u8; 32];
-    OsRng.fill_bytes(&mut random_token);
+    getrandom::fill(&mut random_token).expect("failed to get random bytes from the OS");
 
     base64::engine::general_purpose::STANDARD.encode(random_token)
 }
 
 pub fn hash(password: &[u8]) -> String {
-    let rational_salt = SaltString::generate(&mut OsRng);
     let argon2 = Argon2::default();
 
-    argon2
-        .hash_password(password, &rational_salt)
-        .unwrap()
-        .to_string()
+    argon2.hash_password(password).unwrap().to_string()
 }
 
 pub fn verify(password_hash: &str, password: &[u8]) -> bool {
     let argon2 = Argon2::default();
-    let parsed_hash = PasswordHash::new(password_hash).unwrap();
-    argon2.verify_password(password, &parsed_hash).is_ok()
+    argon2.verify_password(password, password_hash).is_ok()
 }

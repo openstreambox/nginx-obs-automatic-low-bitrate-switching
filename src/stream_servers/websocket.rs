@@ -226,12 +226,14 @@ async fn run_websocket_client(
                         Ok(Some(Ok(Message::Text(text)))) => {
                             handle_message(&text, feed.as_deref(), &inner).await;
                         }
-                        Ok(Some(Ok(Message::Binary(bytes)))) => match String::from_utf8(bytes) {
-                            Ok(text) => handle_message(&text, feed.as_deref(), &inner).await,
-                            Err(error) => {
-                                trace!("[WebSocketStats] Non-UTF8 binary message: {}", error)
+                        Ok(Some(Ok(Message::Binary(bytes)))) => {
+                            match String::from_utf8(bytes.to_vec()) {
+                                Ok(text) => handle_message(&text, feed.as_deref(), &inner).await,
+                                Err(error) => {
+                                    trace!("[WebSocketStats] Non-UTF8 binary message: {}", error)
+                                }
                             }
-                        },
+                        }
                         Ok(Some(Ok(Message::Close(_)))) | Ok(None) => break,
                         Ok(Some(Ok(_))) => {}
                         Ok(Some(Err(error))) => {

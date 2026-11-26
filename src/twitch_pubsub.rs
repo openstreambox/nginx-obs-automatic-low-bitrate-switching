@@ -260,7 +260,7 @@ async fn run_loop(
             };
             let listen_request = serde_json::to_string(&listen_request).unwrap();
 
-            if let Err(e) = write.send(TMessage::Text(listen_request)).await {
+            if let Err(e) = write.send(TMessage::Text(listen_request.into())).await {
                 error!(?e, "error sending initial listen request");
                 continue;
             };
@@ -335,7 +335,8 @@ async fn keepalive(write: Arc<Mutex<Option<Writer>>>, mut cancel_rx: oneshot::Re
                         nonce: None,
                         data: None,
                     })
-                    .unwrap(),
+                    .unwrap()
+                    .into(),
                 ))
                 .await)
                 .is_err()
@@ -368,7 +369,7 @@ async fn handle_messages(
             let msg: Message = match serde_json::from_str(text) {
                 Ok(o) => o,
                 Err(e) => {
-                    error!(?e, text, "failed to deserialize");
+                    error!(?e, text = text.as_str(), "failed to deserialize");
                     continue;
                 }
             };
@@ -431,7 +432,7 @@ async fn handle_requests(
         let mut lock = write.lock().await;
         if let Some(w) = lock.as_mut() {
             let res = w
-                .send(TMessage::Text(request.message))
+                .send(TMessage::Text(request.message.into()))
                 .await
                 .map_err(TwitchPubsubError::Send);
 

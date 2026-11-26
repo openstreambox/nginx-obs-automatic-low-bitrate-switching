@@ -19,7 +19,7 @@ const LOG_FILE_NAME_ENV: &str = "LOG_FILE_NAME";
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    dotenv::dotenv().ok();
+    dotenvy::dotenv().ok();
     noalbs::print_logo();
     let _ = print_if_new_version().await;
 

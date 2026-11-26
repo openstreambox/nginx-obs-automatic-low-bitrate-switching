@@ -298,7 +298,12 @@ impl Inner {
     async fn send(&mut self, request: &Request<'_>) -> Result<(), error::Error> {
         let json = serde_json::to_string(request)?;
 
-        if self.connection.send(TMessage::Text(json)).await.is_err() {
+        if self
+            .connection
+            .send(TMessage::Text(json.into()))
+            .await
+            .is_err()
+        {
             tracing::error!("Error sending request to KICK");
         }
 
